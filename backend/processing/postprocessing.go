@@ -101,7 +101,42 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 		}
 
 		img = i
+	}
 
+	if config.IsProcessingFlipEnabled() {
+		flip := getQueryBool(c, "flip", _p(false))
+		if *flip {
+			i, err := flipImage(img)
+			if err != nil {
+				return nil, err
+			}
+
+			img = i
+		}
+	}
+
+	if config.IsProcessingFlopEnabled() {
+		flip := getQueryBool(c, "flop", _p(false))
+		if *flip {
+			i, err := flopImage(img)
+			if err != nil {
+				return nil, err
+			}
+
+			img = i
+		}
+	}
+
+	if config.IsProcessingZoomEnabled() {
+		factor := getQueryInt(c, "zoom", nil)
+		if factor != nil {
+			i, err := zoomImage(img, *factor)
+			if err != nil {
+				return nil, err
+			}
+
+			img = i
+		}
 	}
 
 	return img.Image(), nil
@@ -126,9 +161,19 @@ func resizeImage(in *bimg.Image, width, height int, keepAspectRatio bool) (*bimg
 }
 
 func rotateImage(in *bimg.Image, degree bimg.Angle) (*bimg.Image, error) {
+	cc := degree < 0
+	degree = degree * -1
+
 	out, err := in.Rotate(degree)
 	if err != nil {
 		return nil, err
+	}
+
+	if cc {
+		out, err = bimg.NewImage(out).Flip()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return bimg.NewImage(out), nil
@@ -168,6 +213,33 @@ func blurImage(in *bimg.Image, sigma, minAmpl float64) (*bimg.Image, error) {
 
 func watermarkImage(in *bimg.Image, watermark bimg.Watermark) (*bimg.Image, error) {
 	out, err := in.Watermark(watermark)
+	if err != nil {
+		return nil, err
+	}
+
+	return bimg.NewImage(out), nil
+}
+
+func flipImage(in *bimg.Image) (*bimg.Image, error) {
+	out, err := in.Flip()
+	if err != nil {
+		return nil, err
+	}
+
+	return bimg.NewImage(out), nil
+}
+
+func flopImage(in *bimg.Image) (*bimg.Image, error) {
+	out, err := in.Flop()
+	if err != nil {
+		return nil, err
+	}
+
+	return bimg.NewImage(out), nil
+}
+
+func zoomImage(in *bimg.Image, factor int) (*bimg.Image, error) {
+	out, err := in.Zoom(factor)
 	if err != nil {
 		return nil, err
 	}

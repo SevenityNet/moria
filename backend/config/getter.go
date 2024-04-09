@@ -184,6 +184,24 @@ func IsProcessingWatermarkEnabled() bool {
 	return value
 }
 
+func IsProcessingFlipEnabled() bool {
+	value, _ := getBoolEnv("PROCESSING_FLIP_ENABLED")
+
+	return value
+}
+
+func IsProcessingFlopEnabled() bool {
+	value, _ := getBoolEnv("PROCESSING_FLOP_ENABLED")
+
+	return value
+}
+
+func IsProcessingZoomEnabled() bool {
+	value, _ := getBoolEnv("PROCESSING_ZOOM_ENABLED")
+
+	return value
+}
+
 func IsAPIEnabled() bool {
 	value, _ := getBoolEnv("API_ENABLED")
 
