@@ -13,238 +13,125 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 		return in, nil
 	}
 
-	img := bimg.NewImage(in)
+	options := bimg.Options{}
+	update := false
 
+	// Resize
 	if config.IsProcessingResizeEnabled() {
 		w := getQueryInt(c, "w", nil)
 		h := getQueryInt(c, "h", nil)
 		keepAspectRatio := getQueryBool(c, "keepAspectRatio", _p(false))
-
 		if w != nil && h != nil {
-			i, err := resizeImage(img, *w, *h, *keepAspectRatio)
-			if err != nil {
-				return nil, err
+			options.Width = *w
+			options.Height = *h
+			if *keepAspectRatio {
+				options.Embed = true
+			} else {
+				options.Force = true
 			}
-
-			img = i
+			update = true
 		}
 	}
 
+	// Rotate
 	if config.IsProcessingRotateEnabled() {
 		degree := getQueryInt(c, "rotate", nil)
 		if degree != nil {
-			i, err := rotateImage(img, bimg.Angle(*degree))
-			if err != nil {
-				return nil, err
-			}
-
-			img = i
+			options.Rotate = bimg.Angle(*degree)
+			update = true
 		}
 	}
 
+	// Crop
 	if config.IsProcessingCropEnabled() {
 		w := getQueryInt(c, "cw", nil)
 		h := getQueryInt(c, "ch", nil)
 		gravity := getQueryInt(c, "gravity", nil)
 		if w != nil && h != nil && gravity != nil {
-			i, err := cropImage(img, *w, *h, bimg.Gravity(*gravity))
-			if err != nil {
-				return nil, err
-			}
-
-			img = i
+			options.Width = *w
+			options.Height = *h
+			options.Gravity = bimg.Gravity(*gravity)
+			options.Crop = true
+			update = true
 		}
 	}
 
+	// To Grayscale
 	if config.IsProcessingToGrayscaleEnabled() {
 		toGrayscale := getQueryBool(c, "bw", _p(false))
 		if *toGrayscale {
-			i, err := imageToGrayscale(img)
-			if err != nil {
-				return nil, err
-			}
-
-			img = i
+			options.Interpretation = bimg.InterpretationBW
+			update = true
 		}
 	}
 
-	if config.IsProcessingBlurEnabled() {
-		sigma := getQueryFloat64(c, "blurSigma", nil)
-		minAmpl := getQueryFloat64(c, "blurMinAmpl", nil)
-		if sigma != nil && minAmpl != nil {
-			i, err := blurImage(img, *sigma, *minAmpl)
-			if err != nil {
-				return nil, err
-			}
-
-			img = i
-		}
-	}
-
+	// Watermark
 	if config.IsProcessingWatermarkEnabled() {
-		font := c.Query("watermarkFont")
-		if font == "" {
-			font = "sans bold 12"
+		text := c.Query("watermarkText")
+		if text != "" {
+			options.Watermark = bimg.Watermark{
+				Text:    text,
+				Opacity: *getQueryFloat32(c, "watermarkOpacity", _p[float32](1.0)),
+				Width:   *getQueryInt(c, "watermarkWidth", _p(100)),
+				DPI:     *getQueryInt(c, "watermarkDPI", _p(72)),
+				Margin:  *getQueryInt(c, "watermarkMargin", _p(10)),
+				Font:    c.Query("watermarkFont"),
+			}
+			update = true
 		}
-
-		watermark := bimg.Watermark{
-			Text:    c.Query("watermarkText"),
-			Opacity: *getQueryFloat32(c, "watermarkOpacity", _p[float32](1.0)),
-			Width:   *getQueryInt(c, "watermarkWidth", _p(100)),
-			DPI:     *getQueryInt(c, "watermarkDPI", _p(72)),
-			Margin:  *getQueryInt(c, "watermarkMargin", _p(10)),
-			Font:    font,
-		}
-		i, err := watermarkImage(img, watermark)
-		if err != nil {
-			return nil, err
-		}
-
-		img = i
 	}
 
+	// Flip
 	if config.IsProcessingFlipEnabled() {
 		flip := getQueryBool(c, "flip", _p(false))
 		if *flip {
-			i, err := flipImage(img)
-			if err != nil {
-				return nil, err
-			}
-
-			img = i
+			options.Flip = true
+			update = true
 		}
 	}
 
+	// Flop
 	if config.IsProcessingFlopEnabled() {
-		flip := getQueryBool(c, "flop", _p(false))
-		if *flip {
-			i, err := flopImage(img)
-			if err != nil {
-				return nil, err
-			}
-
-			img = i
+		flop := getQueryBool(c, "flop", _p(false))
+		if *flop {
+			options.Flop = true
+			update = true
 		}
 	}
 
+	// Zoom
 	if config.IsProcessingZoomEnabled() {
 		factor := getQueryInt(c, "zoom", nil)
 		if factor != nil {
-			i, err := zoomImage(img, *factor)
-			if err != nil {
-				return nil, err
+			options.Zoom = *factor
+			update = true
+		}
+	}
+
+	// Blur
+	if config.IsProcessingBlurEnabled() {
+		sigma := getQueryFloat64(c, "blurSigma", _p(1.0))
+		minAmpl := getQueryFloat64(c, "blurMinAmpl", _p(1.0))
+		if sigma != nil && minAmpl != nil {
+			options.GaussianBlur = bimg.GaussianBlur{
+				Sigma:   *sigma,
+				MinAmpl: *minAmpl,
 			}
-
-			img = i
+			update = true
 		}
 	}
 
-	return img.Image(), nil
-}
-
-func resizeImage(in *bimg.Image, width, height int, keepAspectRatio bool) (*bimg.Image, error) {
-	if keepAspectRatio {
-		out, err := in.Resize(width, height)
-		if err != nil {
-			return nil, err
-		}
-
-		return bimg.NewImage(out), nil
-	} else {
-		out, err := in.ForceResize(width, height)
-		if err != nil {
-			return nil, err
-		}
-
-		return bimg.NewImage(out), nil
+	if !update {
+		return in, nil
 	}
-}
 
-func rotateImage(in *bimg.Image, degree bimg.Angle) (*bimg.Image, error) {
-	cc := degree < 0
-	degree = degree * -1
-
-	out, err := in.Rotate(degree)
+	img := bimg.NewImage(in)
+	processedImage, err := img.Process(options)
 	if err != nil {
 		return nil, err
 	}
 
-	if cc {
-		out, err = bimg.NewImage(out).Flip()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func cropImage(in *bimg.Image, width, height int, gravity bimg.Gravity) (*bimg.Image, error) {
-	out, err := in.Crop(width, height, gravity)
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func imageToGrayscale(in *bimg.Image) (*bimg.Image, error) {
-	out, err := in.Colourspace(bimg.InterpretationBW)
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func blurImage(in *bimg.Image, sigma, minAmpl float64) (*bimg.Image, error) {
-	out, err := in.Process(bimg.Options{
-		GaussianBlur: bimg.GaussianBlur{
-			Sigma:   sigma,
-			MinAmpl: minAmpl,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func watermarkImage(in *bimg.Image, watermark bimg.Watermark) (*bimg.Image, error) {
-	out, err := in.Watermark(watermark)
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func flipImage(in *bimg.Image) (*bimg.Image, error) {
-	out, err := in.Flip()
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func flopImage(in *bimg.Image) (*bimg.Image, error) {
-	out, err := in.Flop()
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
-}
-
-func zoomImage(in *bimg.Image, factor int) (*bimg.Image, error) {
-	out, err := in.Zoom(factor)
-	if err != nil {
-		return nil, err
-	}
-
-	return bimg.NewImage(out), nil
+	return processedImage, nil
 }
 
 func getQueryInt(c *gin.Context, key string, defaultVal *int) *int {
