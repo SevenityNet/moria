@@ -13,7 +13,7 @@ type Source interface {
 	Get(filename string) ([]byte, error)
 }
 
-var sources map[config.SourceType]Source
+var sources = make(map[config.SourceType]Source)
 
 // Initializes the source package.
 func Initialize() {

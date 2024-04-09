@@ -61,7 +61,7 @@ func postImage(c *gin.Context) {
 	}
 
 	if ext != ".gif" {
-		processedData, err := processing.Compress(data)
+		processedData, compressed, err := processing.Compress(data)
 		if err != nil {
 			log.Println(err)
 
@@ -70,6 +70,11 @@ func postImage(c *gin.Context) {
 		}
 
 		data = processedData
+
+		if compressed {
+			mimeType = "image/webp"
+			ext = ".webp"
+		}
 	}
 
 	imageID := strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ext
@@ -92,6 +97,9 @@ func authenticate(c *gin.Context) bool {
 		c.AbortWithStatus(401)
 		return false
 	}
+
+	log.Println(token)
+	log.Println(config.GetSecurityAPIAuthToken())
 
 	if token != config.GetSecurityAPIAuthToken() {
 		c.AbortWithStatus(403)
