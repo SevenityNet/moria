@@ -66,8 +66,8 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 		}
 	}
 
-	// Watermark
-	if config.IsProcessingWatermarkEnabled() {
+	// Watermark currently error producing
+	/*if config.IsProcessingWatermarkEnabled() {
 		text := c.Query("watermarkText")
 		if text != "" {
 			font := c.Query("watermarkFont")
@@ -90,7 +90,7 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 			}
 			update = true
 		}
-	}
+	}*/
 
 	// Flip
 	if config.IsProcessingFlipEnabled() {
@@ -170,20 +170,6 @@ func getQueryFloat64(c *gin.Context, key string, defaultVal *float64) *float64 {
 	}
 
 	return &floatValue
-}
-
-func getQueryFloat32(c *gin.Context, key string, defaultVal *float32) *float32 {
-	value, exists := c.GetQuery(key)
-	if !exists {
-		return defaultVal
-	}
-
-	floatValue, err := strconv.ParseFloat(value, 32)
-	if err != nil {
-		return defaultVal
-	}
-
-	return _p(float32(floatValue))
 }
 
 func getQueryBool(c *gin.Context, key string, defaultVal *bool) *bool {
