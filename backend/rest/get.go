@@ -2,6 +2,7 @@ package rest
 
 import (
 	"log"
+	"moria/cache"
 	"moria/processing"
 	"moria/source"
 	"strings"
@@ -22,14 +23,6 @@ func getImage(c *gin.Context) {
 		return
 	}
 
-	src, err := source.GetCurrent().Get(category + "_" + id)
-	if err != nil {
-		log.Println(err)
-
-		c.JSON(500, gin.H{"error": "Failed to get image"})
-		return
-	}
-
 	ext := getExtension(id)
 	if ext == "" {
 		c.JSON(400, gin.H{"error": "ID is missing extension"})
@@ -39,6 +32,21 @@ func getImage(c *gin.Context) {
 	mimeType := getMimeType(ext)
 	if mimeType == "" {
 		c.JSON(400, gin.H{"error": "Unsupported file type"})
+		return
+	}
+
+	cacheKey := cache.Key(category+"_"+id, c.Request.URL.Query())
+	existing := cache.Get(cacheKey)
+	if existing != nil {
+		c.Data(200, mimeType, existing)
+		return
+	}
+
+	src, err := source.GetCurrent().Get(category + "_" + id)
+	if err != nil {
+		log.Println(err)
+
+		c.JSON(500, gin.H{"error": "Failed to get image"})
 		return
 	}
 
@@ -53,6 +61,8 @@ func getImage(c *gin.Context) {
 
 		src = processed
 	}
+
+	cache.Set(cacheKey, src)
 
 	c.Data(200, mimeType, src)
 }

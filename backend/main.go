@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"moria/cache"
 	"moria/config"
 	"moria/rest"
 	"moria/source"
@@ -28,6 +29,7 @@ func main() {
 
 func startMoria() {
 	source.Initialize()
+	cache.Initialize()
 
 	r := gin.Default()
 

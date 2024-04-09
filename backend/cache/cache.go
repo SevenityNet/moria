@@ -3,13 +3,14 @@ package cache
 import (
 	"context"
 	"moria/config"
+	"net/url"
 	"time"
 
 	"github.com/allegro/bigcache/v3"
-	"github.com/google/uuid"
 )
 
 var cache *bigcache.BigCache
+var enabled bool = false
 
 // Initializes the cache.
 func Initialize() {
@@ -23,14 +24,22 @@ func Initialize() {
 	}
 
 	cache = c
+	enabled = true
 }
 
-func Get(imageID uuid.UUID) []byte {
-	if !config.IsCacheEnabled() {
+func Key(imageID string, queryMap url.Values) string {
+	if !enabled {
+		return ""
+	}
+
+	return hash(getKey(imageID, queryMap))
+}
+
+func Get(key string) []byte {
+	if !enabled {
 		return nil
 	}
 
-	key := hash(imageID.String())
 	if key == "" {
 		return nil
 	}
@@ -43,12 +52,11 @@ func Get(imageID uuid.UUID) []byte {
 	return data
 }
 
-func Set(imageID uuid.UUID, data []byte) {
+func Set(key string, data []byte) {
 	if !config.IsCacheEnabled() {
 		return
 	}
 
-	key := hash(imageID.String())
 	if key == "" {
 		return
 	}
@@ -57,4 +65,12 @@ func Set(imageID uuid.UUID, data []byte) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getKey(imageID string, queryMap url.Values) string {
+	if len(queryMap) == 0 {
+		return imageID
+	}
+
+	return imageID + queryMap.Encode()
 }
