@@ -1,5 +1,7 @@
 package config
 
+import "log"
+
 type CacheHashType string
 type SourceType string
 type SourceRemoteUploadAuthType string
@@ -112,6 +114,21 @@ func GetSourceRemoteFTPPass() string {
 	return value
 }
 
+func IsSourceRemoteFTPCloseOnEnd() bool {
+	value, _ := getBoolEnv("SOURCE_REMOTE_FTP_CLOSE_ON_END")
+
+	return value
+}
+
+func GetSourceRemoteSSHAuth() string {
+	value, err := getStringEnv("SOURCE_REMOTE_SSH_AUTH", []string{"password", "key"})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return value
+}
+
 func GetSourceRemoteSSHUser() string {
 	value, _ := getStringEnv("SOURCE_REMOTE_SSH_USER", nil)
 
@@ -126,6 +143,24 @@ func GetSourceRemoteSSHPass() string {
 
 func GetSourceRemoteSSHKey() string {
 	value, _ := getStringEnv("SOURCE_REMOTE_SSH_KEY", nil)
+
+	return value
+}
+
+func GetSourceRemoteSSHKeyPass() string {
+	value, _ := getStringEnv("SOURCE_REMOTE_SSH_KEY_PASS", nil)
+
+	return value
+}
+
+func GetSourceRemoteSSHPath() string {
+	value, _ := getStringEnv("SOURCE_REMOTE_SSH_PATH", nil)
+
+	return value
+}
+
+func IsSourceRemoteSSHCloseOnEnd() bool {
+	value, _ := getBoolEnv("SOURCE_REMOTE_SSH_CLOSE_ON_END")
 
 	return value
 }

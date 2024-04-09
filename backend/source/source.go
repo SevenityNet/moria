@@ -13,19 +13,23 @@ type Source interface {
 	Get(filename string) ([]byte, error)
 }
 
-var sources = make(map[config.SourceType]Source)
+var source Source
 
 // Initializes the source package.
 func Initialize() {
-	registerSource(config.SourceTypeLocal, NewLocalSource())
+	switch config.GetSourceType() {
+	case config.SourceTypeLocal:
+		source = NewLocalSource()
+	case config.SourceTypeRemoteFTP:
+		source = NewFTPSource()
+	case config.SourceTypeRemoteSFTP:
+		source = NewFTPSource()
+	case config.SourceTypeRemoteSSH:
+		source = NewSSHSource()
+	}
 }
 
 // Returns the source which is currently configured in the config.
 func GetCurrent() Source {
-	return sources[config.GetSourceType()]
-}
-
-// Registers the given source with the given type.
-func registerSource(sourceType config.SourceType, source Source) {
-	sources[sourceType] = source
+	return source
 }
