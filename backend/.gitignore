@@ -1,0 +1,5 @@
+.bin/
+.upload/
+
+.env
+mine.db
