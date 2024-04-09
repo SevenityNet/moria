@@ -13,6 +13,7 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 		return in, nil
 	}
 
+	img := bimg.NewImage(in)
 	options := bimg.Options{}
 	update := false
 
@@ -69,13 +70,23 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 	if config.IsProcessingWatermarkEnabled() {
 		text := c.Query("watermarkText")
 		if text != "" {
+			font := c.Query("watermarkFont")
+			if font == "" {
+				font = "sans bold 12"
+			}
+
+			metaData, err := img.Metadata()
+			if err != nil {
+				return nil, err
+			}
+
 			options.Watermark = bimg.Watermark{
 				Text:    text,
 				Opacity: *getQueryFloat32(c, "watermarkOpacity", _p[float32](1.0)),
-				Width:   *getQueryInt(c, "watermarkWidth", _p(100)),
+				Width:   *getQueryInt(c, "watermarkWidth", _p(metaData.Size.Width)),
 				DPI:     *getQueryInt(c, "watermarkDPI", _p(72)),
 				Margin:  *getQueryInt(c, "watermarkMargin", _p(10)),
-				Font:    c.Query("watermarkFont"),
+				Font:    font,
 			}
 			update = true
 		}
@@ -125,7 +136,6 @@ func PostProcess(in []byte, c *gin.Context) ([]byte, error) {
 		return in, nil
 	}
 
-	img := bimg.NewImage(in)
 	processedImage, err := img.Process(options)
 	if err != nil {
 		return nil, err
