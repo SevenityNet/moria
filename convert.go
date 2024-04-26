@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"image"
+	"log"
 	"mime/multipart"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/nickalie/go-webpbin"
 	ffmpeg_go "github.com/u2takey/ffmpeg-go"
 )
@@ -40,78 +42,102 @@ var (
 )
 
 type convertResult struct {
-	OutputData []byte
-	TmpFile    string
+	OutputFileID string
+	OutputData   []byte
+	TmpFile      string
 }
 
 // Converts the given file to its compressed format, returning the extension and the compressed data.
-func convertFile(in []byte, from fileType, currExt string) (string, *convertResult, error) {
+func convertFile(in []byte, from fileType, wantedSubfolder, currExt string) (*convertResult, error) {
 	if from == IMAGE {
 		return convertImageFile(in)
 	} else if from == VIDEO {
-		return convertVideoFile(in, currExt)
+		return convertVideoFile(in, wantedSubfolder, currExt)
 	} else if from == AUDIO {
 		return convertAudioFile(in, currExt)
 	}
 
-	return "", nil, errors.New("invalid file type")
+	return nil, errors.New("invalid file type")
 }
 
-func convertImageFile(in []byte) (string, *convertResult, error) {
+func convertImageFile(in []byte) (*convertResult, error) {
 	r := bytes.NewReader(in)
 	img, _, err := image.Decode(r)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	out := new(bytes.Buffer)
 	if err := webpbin.Encode(out, img); err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	return "webp", &convertResult{
-		OutputData: out.Bytes(),
-		TmpFile:    "",
+	return &convertResult{
+		OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".webp",
+		OutputData:   out.Bytes(),
+		TmpFile:      "",
 	}, nil
 }
 
-func convertVideoFile(in []byte, currExt string) (string, *convertResult, error) {
-	inTmp, err := writeTmpFile(in, currExt)
-	if err != nil {
-		return "", nil, err
+func convertVideoFile(in []byte, wantedSubfolder, currExt string) (*convertResult, error) {
+	fileIdWoExt := strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "")
+	inFileName := fileIdWoExt + "." + currExt
+
+	if err := writeFileToDisk(wantedSubfolder, inFileName, in); err != nil {
+		return nil, err
 	}
 
-	outTmp := getTmpFilePath("webm")
-
-	if err := ffmpeg_go.Input(inTmp).Output(outTmp, ffmpeg_go.KwArgs{"c:v": "libvpx-vp9", "b:v": "0", "crf": "30", "strict": "experimental"}).OverWriteOutput().Run(); err != nil {
-		return "", nil, err
+	if currExt == "webm" {
+		return &convertResult{
+			OutputFileID: inFileName,
+			OutputData:   nil,
+			TmpFile:      "",
+		}, nil
 	}
 
-	_ = deleteTmpFile(inTmp)
+	fileID := fileIdWoExt + ".webm"
 
-	return "webm", &convertResult{
-		OutputData: nil,
-		TmpFile:    outTmp,
+	go func() {
+		outTmp := getTmpFilePath("webm")
+
+		if err := ffmpeg_go.Input(getFilePath(wantedSubfolder, inFileName)).Output(outTmp, ffmpeg_go.KwArgs{"c:v": "libvpx-vp9", "b:v": "0", "crf": "30", "strict": "experimental"}).OverWriteOutput().Run(); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err := moveTmpToUploads(outTmp, wantedSubfolder, fileID); err != nil {
+			log.Println(err)
+			return
+		}
+
+		_ = deleteFileFromDisk(wantedSubfolder, inFileName)
+	}()
+
+	return &convertResult{
+		OutputFileID: fileID,
+		OutputData:   nil,
+		TmpFile:      "",
 	}, nil
 }
 
-func convertAudioFile(in []byte, currExt string) (string, *convertResult, error) {
+func convertAudioFile(in []byte, currExt string) (*convertResult, error) {
 	inTmp, err := writeTmpFile(in, currExt)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	outTmp := getTmpFilePath("aac")
 
 	if err := ffmpeg_go.Input(inTmp).Output(outTmp, ffmpeg_go.KwArgs{"c:a": "aac", "strict": "experimental"}).OverWriteOutput().Run(); err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	_ = deleteTmpFile(inTmp)
 
-	return "aac", &convertResult{
-		OutputData: nil,
-		TmpFile:    outTmp,
+	return &convertResult{
+		OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".acc",
+		OutputData:   nil,
+		TmpFile:      outTmp,
 	}, nil
 }
 

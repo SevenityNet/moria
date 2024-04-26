@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 func uploadFile(c *gin.Context) {
@@ -54,24 +53,22 @@ func uploadFile(c *gin.Context) {
 
 	currExt := strings.Split(file.Filename, ".")[1]
 
-	extension, result, err := convertFile(data, fileType, currExt)
+	result, err := convertFile(data, fileType, subfolder, currExt)
 	if err != nil {
 		panic(err)
 	}
 
-	uniqueFileID := strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + "." + extension
-
 	if result.OutputData != nil {
-		if err := writeFileToDisk(subfolder, uniqueFileID, result.OutputData); err != nil {
+		if err := writeFileToDisk(subfolder, result.OutputFileID, result.OutputData); err != nil {
 			panic(err)
 		}
-	} else {
-		if err := moveTmpToUploads(result.TmpFile, subfolder, uniqueFileID); err != nil {
+	} else if result.TmpFile != "" {
+		if err := moveTmpToUploads(result.TmpFile, subfolder, result.OutputFileID); err != nil {
 			panic(err)
 		}
 	}
 
 	c.JSON(201, gin.H{
-		"file": uniqueFileID,
+		"file": result.OutputFileID,
 	})
 }
