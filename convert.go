@@ -41,6 +41,8 @@ var (
 	}
 )
 
+var videoEncodingQueue = make(chan *encodeVideoParams, 1000000)
+
 type convertResult struct {
 	OutputFileID string
 	OutputData   []byte
@@ -97,21 +99,11 @@ func convertVideoFile(in []byte, wantedSubfolder, currExt string) (*convertResul
 
 	fileID := fileIdWoExt + ".webm"
 
-	go func() {
-		outTmp := getTmpFilePath("webm")
-
-		if err := ffmpeg_go.Input(getFilePath(wantedSubfolder, inFileName)).Output(outTmp, ffmpeg_go.KwArgs{"c:v": "libvpx-vp9", "b:v": "0", "crf": "30", "strict": "experimental"}).OverWriteOutput().Run(); err != nil {
-			log.Println(err)
-			return
-		}
-
-		if err := moveTmpToUploads(outTmp, wantedSubfolder, fileID); err != nil {
-			log.Println(err)
-			return
-		}
-
-		_ = deleteFileFromDisk(wantedSubfolder, inFileName)
-	}()
+	enqueueVideo(&encodeVideoParams{
+		FileID:          fileID,
+		WantedSubfolder: wantedSubfolder,
+		InFileName:      inFileName,
+	})
 
 	return &convertResult{
 		OutputFileID: fileID,
@@ -173,4 +165,41 @@ func getFileTypeByFilePath(filePath string) (fileType, bool) {
 	}
 
 	return -1, false
+}
+
+type encodeVideoParams struct {
+	WantedSubfolder string
+	InFileName      string
+	FileID          string
+}
+
+func encodeVideo(params *encodeVideoParams) {
+	outTmp := getTmpFilePath("webm")
+
+	if err := ffmpeg_go.Input(getFilePath(params.WantedSubfolder, params.InFileName)).Output(outTmp, ffmpeg_go.KwArgs{"c:v": "libvpx-vp9", "b:v": "0", "crf": "30", "strict": "experimental"}).OverWriteOutput().Run(); err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err := moveTmpToUploads(outTmp, params.WantedSubfolder, params.FileID); err != nil {
+		log.Println(err)
+		return
+	}
+
+	_ = deleteFileFromDisk(params.WantedSubfolder, params.InFileName)
+}
+
+func enqueueVideo(v *encodeVideoParams) {
+	select {
+	case videoEncodingQueue <- v:
+	default:
+		panic("video encoding queue full")
+	}
+}
+
+func videoEncodingConsumer() {
+	for {
+		params := <-videoEncodingQueue
+		encodeVideo(params)
+	}
 }

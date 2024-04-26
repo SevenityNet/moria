@@ -26,6 +26,8 @@ func startup() {
 	initIO()
 	initAuth()
 
+	go videoEncodingConsumer()
+
 	gin.SetMode(gin.DebugMode)
 	r := gin.Default()
 
