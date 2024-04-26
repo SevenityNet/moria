@@ -16,6 +16,6 @@ RUN apk update
 RUN apk upgrade
 RUN apk add --no-cache ffmpeg
 
-COPY --from=build /app/moria /sr/local/bin/moria
+COPY --from=builder /app/moria /usr/local/bin/moria
 
 ENTRYPOINT [ "moria" ]

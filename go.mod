@@ -1,6 +1,6 @@
 module sevenity-moria
 
-go 1.22.2
+go 1.22
 
 require (
 	github.com/allegro/bigcache/v3 v3.1.0
@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/nickalie/go-webpbin v0.0.0-20220110095747-f10016bf2dc1
+	github.com/u2takey/ffmpeg-go v0.5.0
 )
 
 require (
@@ -39,7 +40,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.1 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/u2takey/ffmpeg-go v0.5.0 // indirect
 	github.com/u2takey/go-utils v0.3.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
