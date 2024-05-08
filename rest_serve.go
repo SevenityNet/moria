@@ -76,6 +76,15 @@ func serveFile(c *gin.Context) {
 		log.Println("Serving from cache")
 	}
 
+	if fileType == IMAGE {
+		file, err = postprocessImage(c, file)
+		if err != nil {
+			log.Println(err)
+			c.JSON(500, gin.H{"error": "Failed to process image"})
+			return
+		}
+	}
+
 	c.Data(http.StatusOK, FILETYPE_TO_CONTENTTYPE[fileType], file)
 }
 
