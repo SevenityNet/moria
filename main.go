@@ -40,6 +40,8 @@ func startup() {
 	r.GET("/media/:folder/:file", serveFile)
 	r.GET("/auth/invite", invite)
 
+	log.Println("Server is running on port 1980 (sonst macht Buh, Buuuuuh!)")
+
 	r.Run(":1980")
 }
 
