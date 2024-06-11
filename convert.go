@@ -6,6 +6,7 @@ import (
 	"image"
 	"log"
 	"mime/multipart"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -134,7 +135,7 @@ func convertAudioFile(in []byte, currExt string) (*convertResult, error) {
 }
 
 func getFileType(file *multipart.FileHeader) (fileType, bool) {
-	extension := strings.Split(file.Filename, ".")[1]
+	extension := filepath.Ext(file.Filename)[1:]
 
 	if ALLOWED_IMAGE_EXTENSIONS[extension] {
 		return IMAGE, true
