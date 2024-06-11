@@ -68,7 +68,7 @@ func deleteFileFromDisk(subfolder, filename string) error {
 		return err
 	}
 
-	if err := removeCachedFile(filename); err != nil {
+	if err := removeCachedFile(filePath); err != nil {
 		log.Println("Error removing cached file:", err)
 	}
 
