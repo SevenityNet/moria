@@ -45,3 +45,12 @@ func getCachedFileIfExists(filename string) ([]byte, error) {
 
 	return entry, nil
 }
+
+// removes a cached file, returns error if file is not found in cache or if an error happens in removal
+func removeCachedFile(filename string) error {
+	err := FILECACHE.Delete(filename)
+	if err != nil {
+		return err
+	}
+	return nil
+}

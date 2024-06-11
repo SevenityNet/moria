@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"os"
 	"path"
 
@@ -65,6 +66,10 @@ func deleteFileFromDisk(subfolder, filename string) error {
 
 	if err := os.Remove(filePath); err != nil {
 		return err
+	}
+
+	if err := removeCachedFile(filename); err != nil {
+		log.Println("Error removing cached file:", err)
 	}
 
 	return nil
