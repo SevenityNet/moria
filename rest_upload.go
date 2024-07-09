@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -51,7 +52,7 @@ func uploadFile(c *gin.Context) {
 		panic(err)
 	}
 
-	currExt := strings.Split(file.Filename, ".")[1]
+	currExt := strings.ToLower(filepath.Ext(file.Filename)[1:])
 
 	result, err := convertFile(data, fileType, subfolder, currExt)
 	if err != nil {

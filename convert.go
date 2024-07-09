@@ -53,7 +53,7 @@ type convertResult struct {
 // Converts the given file to its compressed format, returning the extension and the compressed data.
 func convertFile(in []byte, from fileType, wantedSubfolder, currExt string) (*convertResult, error) {
 	if from == IMAGE {
-		return convertImageFile(in)
+		return convertImageFile(in, currExt)
 	} else if from == VIDEO {
 		return convertVideoFile(in, wantedSubfolder, currExt)
 	} else if from == AUDIO {
@@ -63,7 +63,15 @@ func convertFile(in []byte, from fileType, wantedSubfolder, currExt string) (*co
 	return nil, errors.New("invalid file type")
 }
 
-func convertImageFile(in []byte) (*convertResult, error) {
+func convertImageFile(in []byte, currExt string) (*convertResult, error) {
+	if currExt == "webp" {
+		return &convertResult{
+			OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".webp",
+			OutputData:   in,
+			TmpFile:      "",
+		}, nil
+	}
+
 	r := bytes.NewReader(in)
 	img, _, err := image.Decode(r)
 	if err != nil {
@@ -83,6 +91,14 @@ func convertImageFile(in []byte) (*convertResult, error) {
 }
 
 func convertVideoFile(in []byte, wantedSubfolder, currExt string) (*convertResult, error) {
+	if currExt == "webm" {
+		return &convertResult{
+			OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".webm",
+			OutputData:   in,
+			TmpFile:      "",
+		}, nil
+	}
+
 	fileIdWoExt := strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "")
 	inFileName := fileIdWoExt + "." + currExt
 
@@ -114,6 +130,14 @@ func convertVideoFile(in []byte, wantedSubfolder, currExt string) (*convertResul
 }
 
 func convertAudioFile(in []byte, currExt string) (*convertResult, error) {
+	if currExt == "aac" {
+		return &convertResult{
+			OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".acc",
+			OutputData:   in,
+			TmpFile:      "",
+		}, nil
+	}
+
 	inTmp, err := writeTmpFile(in, currExt)
 	if err != nil {
 		return nil, err
@@ -135,7 +159,7 @@ func convertAudioFile(in []byte, currExt string) (*convertResult, error) {
 }
 
 func getFileType(file *multipart.FileHeader) (fileType, bool) {
-	extension := filepath.Ext(file.Filename)[1:]
+	extension := strings.ToLower(filepath.Ext(file.Filename)[1:])
 
 	if ALLOWED_IMAGE_EXTENSIONS[extension] {
 		return IMAGE, true
