@@ -132,7 +132,7 @@ func convertVideoFile(in []byte, wantedSubfolder, currExt string) (*convertResul
 func convertAudioFile(in []byte, currExt string) (*convertResult, error) {
 	if currExt == "aac" {
 		return &convertResult{
-			OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".acc",
+			OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".aac",
 			OutputData:   in,
 			TmpFile:      "",
 		}, nil
@@ -152,7 +152,7 @@ func convertAudioFile(in []byte, currExt string) (*convertResult, error) {
 	_ = deleteTmpFile(inTmp)
 
 	return &convertResult{
-		OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".acc",
+		OutputFileID: strings.ReplaceAll(uuid.NewString()+uuid.NewString(), "-", "") + ".aac",
 		OutputData:   nil,
 		TmpFile:      outTmp,
 	}, nil
