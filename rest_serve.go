@@ -43,7 +43,11 @@ func serveFile(c *gin.Context) {
 
 	fileType, ok := getFileTypeByFilePath(filePath)
 	if !ok {
-		panic("invalid file type")
+		c.JSON(400, gin.H{
+			"error": "Invalid file type",
+		})
+
+		return
 	}
 
 	file, err := getCachedFileIfExists(filePath)
