@@ -185,7 +185,7 @@ func getFileTypeByFilePath(filePath string) (fileType, bool) {
 		return VIDEO, true
 	}
 
-	if strings.HasSuffix(filePath, ".aac") {
+	if strings.HasSuffix(filePath, ".aac") || strings.HasSuffix(filePath, ".acc") {
 		return AUDIO, true
 	}
 
