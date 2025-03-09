@@ -40,9 +40,14 @@ func startup() {
 	r.GET("/media/:folder/:file", serveFile)
 	r.GET("/auth/invite", invite)
 
-	log.Println("Server is running on port 1980 (sonst macht Buh, Buuuuuh!)")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "1980"
+	}
 
-	r.Run(":1980")
+	log.Printf("Server is running on port %s (sonst macht Buh, Buuuuuh!)", port)
+
+	r.Run(":" + port)
 }
 
 func getHello(c *gin.Context) {
