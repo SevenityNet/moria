@@ -9,11 +9,6 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       AUTH_TOKEN: ${AUTH_TOKEN}
     restart: on-failure
-#    volumes:
-#      - moria_uploads:/usr/local/bin/.uploads
-#      - moria_tmp:/usr/local/bin/.tmp
-
-volumes:
-  moria_uploads: {}
-  moria_tmp: {}
+    volumes:
+      - ./.uploads:/.uploads
 
